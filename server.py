@@ -61,7 +61,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with Progress(transient=True) as progress:
-        loading = progress.add_task(f"Loading {args.model.stem} model", total=None)
+        loading = progress.add_task("Loading model", total=None)
         cache = Path(__file__).parent / "cache"
         cache.mkdir(parents=True, exist_ok=True)
         model = Model(args.model, cache)
