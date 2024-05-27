@@ -38,7 +38,7 @@ class Model:
             state_dict = {"latent": latent.contiguous(), "embed": embed.contiguous()}
             save_file(state_dict, file)
 
-        state_dict = load_file(file, device="cuda")
+        state_dict = load_file(file)
         self.speakers[name] = (state_dict["latent"], state_dict["embed"])
 
     def generate(self, input: Input):
@@ -82,5 +82,4 @@ class Model:
         buffer = BytesIO()
         tensor = tensor.unsqueeze(0).cpu()
         torchaudio.save(buffer, tensor, 24000, format=format)
-        buffer.seek(0)
-        return buffer.read()
+        return buffer.getvalue()

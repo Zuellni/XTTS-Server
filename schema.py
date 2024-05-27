@@ -23,7 +23,7 @@ class Input(BaseModel):
     ] = "en"
 
     @field_validator("speaker_wav", mode="after")
-    def validate(cls, value):
+    def validate_speaker(cls, value):
         if value not in Speaker:
             raise ValueError("invalid speaker")
 
