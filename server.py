@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--host", type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8020)
+    parser.add_argument("-d", "--deepspeed", action="store_true")
     parser.add_argument("-m", "--model", type=DirectoryPath, required=True)
     parser.add_argument("-s", "--speakers", type=DirectoryPath, required=True)
     args = parser.parse_args()
@@ -64,7 +65,7 @@ if __name__ == "__main__":
         loading = progress.add_task("Loading model", total=None)
         cache = Path(__file__).parent / "cache"
         cache.mkdir(parents=True, exist_ok=True)
-        model = Model(args.model, cache)
+        model = Model(args.model, cache, args.deepspeed)
 
     with Progress(transient=True) as progress:
         suffixes = (".flac", ".mp3", ".ogg", ".wav")

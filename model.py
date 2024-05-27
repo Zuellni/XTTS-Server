@@ -12,20 +12,20 @@ from schema import Input, Settings
 
 
 class Model:
-    def __init__(self, model_dir: DirectoryPath, cache_dir: DirectoryPath):
+    def __init__(self, model: DirectoryPath, cache: DirectoryPath, deepspeed: bool):
         config = XttsConfig()
-        config.load_json(model_dir / "config.json")
+        config.load_json(model / "config.json")
 
         self.model = Xtts.init_from_config(config)
-        self.model.load_checkpoint(config, model_dir)
+        self.model.load_checkpoint(config, model, use_deepspeed=deepspeed)
 
         self.settings = Settings()
-        self.cache_dir = cache_dir
+        self.cache = cache
         self.speakers = {}
 
     def add(self, path: DirectoryPath):
         name = path.stem.lower()
-        file = self.cache_dir / f"{name}.st"
+        file = self.cache / f"{name}.st"
         self.model.cpu()
 
         if not file.exists():
