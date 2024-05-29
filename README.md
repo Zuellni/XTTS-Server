@@ -8,7 +8,7 @@ conda create -n xtts git python fastapi pytorch pytorch-cuda torchaudio -c conda
 conda activate xtts
 ```
 
-Install dependencies, `coqui-tts` needs [Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) to compile on Windows, `transformers>=4.41.0` fails on streaming:
+Install dependencies, `coqui-tts` needs [Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) to compile on Windows:
 ```
 pip install coqui-tts "transformers<=4.40.2"
 ```
