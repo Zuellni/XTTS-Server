@@ -10,7 +10,7 @@ conda activate xtts
 
 Install dependencies, `coqui-tts` needs [Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) to compile on Windows:
 ```
-pip install coqui-tts "transformers<=4.40.2"
+pip install coqui-tts
 ```
 
 Optional speedup, unlikely to compile on Windows:
