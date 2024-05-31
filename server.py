@@ -3,7 +3,7 @@ from enum import StrEnum
 from pathlib import Path
 
 import uvicorn
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import DirectoryPath
@@ -36,12 +36,9 @@ def get():
 
 
 @app.get("/tts_stream")
-async def stream(request: Request, input: Input = Depends()):
-    async def generator():
-        async for chunk in model.stream(input):
-            if await request.is_disconnected():
-                break
-
+def stream(input: Input = Depends()):
+    def generator():
+        for chunk in model.stream(input):
             yield chunk
 
     return StreamingResponse(generator(), media_type="audio/ogg")
@@ -49,7 +46,8 @@ async def stream(request: Request, input: Input = Depends()):
 
 @app.post("/tts_to_audio")
 def generate(input: Input):
-    return Response(model.generate(input), media_type="audio/wav")
+    output = model.generate(input)
+    return Response(output, media_type="audio/wav")
 
 
 if __name__ == "__main__":
@@ -76,9 +74,9 @@ if __name__ == "__main__":
             model.add(speaker)
             progress.advance(caching)
 
-        Temp = StrEnum("Temp", ((s, s) for s in model.speakers))
-        Speaker._member_map_ = Temp._member_map_
-        Speaker._member_names_ = Temp._member_names_
-        Speaker._value2member_map_ = Temp._value2member_map_
+        Speakers = StrEnum("Speakers", ((s, s) for s in model.speakers))
+        Speaker._member_map_ = Speakers._member_map_
+        Speaker._member_names_ = Speakers._member_names_
+        Speaker._value2member_map_ = Speakers._value2member_map_
 
     uvicorn.run(app, host=args.host, port=args.port)
