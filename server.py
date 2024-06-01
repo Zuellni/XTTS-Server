@@ -3,9 +3,9 @@ from enum import StrEnum
 from pathlib import Path
 
 import uvicorn
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import StreamingResponse
 from pydantic import DirectoryPath
 from rich.progress import Progress
 
@@ -36,18 +36,27 @@ def get():
 
 
 @app.get("/tts_stream")
-def stream(input: Input = Depends()):
-    def generator():
-        for chunk in model.stream(input):
-            yield chunk
+async def stream(request: Request, input: Input = Depends()):
+    async def generator():
+        async for output in model.stream(input):
+            if await request.is_disconnected():
+                break
+
+            yield output
 
     return StreamingResponse(generator(), media_type="audio/ogg")
 
 
 @app.post("/tts_to_audio")
-def generate(input: Input):
-    output = model.generate(input)
-    return Response(output, media_type="audio/wav")
+async def generate(request: Request, input: Input):
+    async def generator():
+        async for output in model.generate(input):
+            if await request.is_disconnected():
+                break
+
+            yield output
+
+    return StreamingResponse(generator(), media_type="audio/ogg")
 
 
 if __name__ == "__main__":

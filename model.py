@@ -1,4 +1,3 @@
-import warnings
 from io import BytesIO
 
 import torch
@@ -6,6 +5,7 @@ import torchaudio
 from pydantic import DirectoryPath
 from safetensors.torch import load_file, save_file
 from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.layers.xtts.tokenizer import split_sentence
 from TTS.tts.models.xtts import Xtts
 
 from schema import Input, Settings
@@ -41,45 +41,60 @@ class Model:
         state_dict = load_file(file)
         self.speakers[name] = (state_dict["latent"], state_dict["embed"])
 
-    def generate(self, input: Input):
-        latent, embed = self.speakers[input.speaker_wav]
+    def process(self, input: Input):
+        inputs = (
+            split_sentence(input.text, input.language, self.settings.stream_chunk_size)
+            if self.settings.enable_text_splitting
+            else [input.text]
+        )
+
         self.model.cuda()
-
-        output = self.model.inference(
-            text=input.text,
-            language=input.language,
-            gpt_cond_latent=latent,
-            speaker_embedding=embed,
-            speed=self.settings.speed,
-            temperature=self.settings.temperature,
-            length_penalty=self.settings.length_penalty,
-            repetition_penalty=self.settings.repetition_penalty,
-            top_k=self.settings.top_k,
-            top_p=self.settings.top_p,
-            enable_text_splitting=self.settings.enable_text_splitting,
-        )["wav"]
-
-        output = torch.tensor(output)
-        return self.encode(output, "wav")
-
-    async def stream(self, input: Input):
         latent, embed = self.speakers[input.speaker_wav]
-        self.model.cuda()
+        return inputs, input.language, latent, embed
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
+    async def generate(self, input: Input):
+        inputs, lang, latent, embed = self.process(input)
 
-            for chunk in self.model.inference_stream(
-                text=input.text,
-                language=input.language,
+        for input in inputs:
+            output = self.model.inference(
+                text=input,
+                language=lang,
                 gpt_cond_latent=latent,
                 speaker_embedding=embed,
-                **self.settings.dict(),
-            ):
-                yield self.encode(chunk, "ogg")
+                speed=self.settings.speed,
+                temperature=self.settings.temperature,
+                length_penalty=self.settings.length_penalty,
+                repetition_penalty=self.settings.repetition_penalty,
+                top_k=self.settings.top_k,
+                top_p=self.settings.top_p,
+                enable_text_splitting=False,
+            )["wav"]
 
-    def encode(self, tensor: torch.Tensor, format: str):
-        buffer = BytesIO()
-        tensor = tensor.unsqueeze(0).cpu()
-        torchaudio.save(buffer, tensor, 24000, format=format)
-        return buffer.getvalue()
+            output = torch.tensor(output)
+            yield self.encode(output)
+
+    async def stream(self, input: Input):
+        inputs, lang, latent, embed = self.process(input)
+
+        for input in inputs:
+            for output in self.model.inference_stream(
+                text=input,
+                language=lang,
+                gpt_cond_latent=latent,
+                speaker_embedding=embed,
+                speed=self.settings.speed,
+                temperature=self.settings.temperature,
+                length_penalty=self.settings.length_penalty,
+                repetition_penalty=self.settings.repetition_penalty,
+                top_k=self.settings.top_k,
+                top_p=self.settings.top_p,
+                stream_chunk_size=self.settings.stream_chunk_size,
+                enable_text_splitting=False,
+            ):
+                yield self.encode(output)
+
+    def encode(self, input: torch.Tensor):
+        output = BytesIO()
+        input = input.unsqueeze(0).cpu()
+        torchaudio.save(output, input, 24000, format="ogg")
+        return output.getvalue()
