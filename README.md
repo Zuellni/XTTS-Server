@@ -13,7 +13,7 @@ Install dependencies, [Build Tools](https://visualstudio.microsoft.com/downloads
 pip install coqui-tts
 ```
 
-Optional speedup, follow [this guide](https://github.com/S95Sedan/Deepspeed-Windows) to compile on Windows:
+Optional speedup, unlikely to compile on Windows:
 ```
 pip install deepspeed
 ```
