@@ -1,7 +1,6 @@
 from io import BytesIO
 
 import torch
-import torch.nn.functional as F
 import torchaudio
 from pydantic import DirectoryPath, FilePath
 from safetensors.torch import load_file, save_file
@@ -34,9 +33,7 @@ class Model:
 
         if not file.exists():
             cond_latent, speaker_embedding = self.model.get_conditioning_latents(
-                audio_path=path,
-                librosa_trim_db=60,
-                sound_norm_refs=True,
+                audio_path=path, librosa_trim_db=60, sound_norm_refs=True
             )
 
             state_dict = {
