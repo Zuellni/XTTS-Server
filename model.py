@@ -1,8 +1,9 @@
 from io import BytesIO
 
 import torch
+import torch.nn.functional as F
 import torchaudio
-from pydantic import DirectoryPath
+from pydantic import DirectoryPath, FilePath
 from safetensors.torch import load_file, save_file
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.layers.xtts.tokenizer import split_sentence
@@ -12,7 +13,9 @@ from schema import Input, Settings
 
 
 class Model:
-    def __init__(self, model: DirectoryPath, cache: DirectoryPath, deepspeed: bool):
+    def __init__(
+        self, model: DirectoryPath, device: str, offload: bool, deepspeed: bool
+    ):
         config = XttsConfig()
         config.load_json(model / "config.json")
 
@@ -20,47 +23,61 @@ class Model:
         self.model.load_checkpoint(config, model, use_deepspeed=deepspeed)
 
         self.settings = Settings()
-        self.cache = cache
+        self.device = device
+        self.offload = offload
         self.speakers = {}
 
-    def add(self, path: DirectoryPath):
+    def add(self, path: FilePath):
         name = path.stem.lower()
-        file = self.cache / f"{name}.st"
+        file = path.parent / f"{name}.st"
         self.model.cpu()
 
         if not file.exists():
-            latent, embed = self.model.get_conditioning_latents(
+            cond_latent, speaker_embedding = self.model.get_conditioning_latents(
                 audio_path=path,
                 librosa_trim_db=60,
                 sound_norm_refs=True,
             )
 
-            state_dict = {"latent": latent.contiguous(), "embed": embed.contiguous()}
+            state_dict = {
+                "cond_latent": cond_latent.contiguous(),
+                "speaker_embedding": speaker_embedding.contiguous(),
+            }
+
             save_file(state_dict, file)
 
-        state_dict = load_file(file)
-        self.speakers[name] = (state_dict["latent"], state_dict["embed"])
+        state_dict = load_file(file, device=self.device)
 
-    def process(self, input: Input):
+        self.speakers[name] = (
+            state_dict["cond_latent"],
+            state_dict["speaker_embedding"],
+        )
+
+    def prepare(self, input: Input):
+        limit = min(
+            self.model.tokenizer.char_limits[input.language],
+            self.settings.stream_chunk_size,
+        )
+
         inputs = (
-            split_sentence(input.text, input.language, self.settings.stream_chunk_size)
+            split_sentence(input.text, input.language, limit)
             if self.settings.enable_text_splitting
             else [input.text]
         )
 
-        self.model.cuda()
-        latent, embed = self.speakers[input.speaker_wav]
-        return inputs, input.language, latent, embed
+        cond_latent, speaker_embedding = self.speakers[input.speaker_wav]
+        return inputs, cond_latent, speaker_embedding
 
     async def generate(self, input: Input):
-        inputs, lang, latent, embed = self.process(input)
+        inputs, cond_latent, speaker_embedding = self.prepare(input)
+        self.model.to(self.device)
 
-        for input in inputs:
+        for text in inputs:
             output = self.model.inference(
-                text=input,
-                language=lang,
-                gpt_cond_latent=latent,
-                speaker_embedding=embed,
+                text=text,
+                language=input.language,
+                gpt_cond_latent=cond_latent,
+                speaker_embedding=speaker_embedding,
                 speed=self.settings.speed,
                 temperature=self.settings.temperature,
                 length_penalty=self.settings.length_penalty,
@@ -73,15 +90,19 @@ class Model:
             output = torch.tensor(output)
             yield self.encode(output)
 
-    async def stream(self, input: Input):
-        inputs, lang, latent, embed = self.process(input)
+        if self.offload:
+            self.model.cpu()
 
-        for input in inputs:
+    async def stream(self, input: Input):
+        inputs, cond_latent, speaker_embedding = self.prepare(input)
+        self.model.to(self.device)
+
+        for text in inputs:
             for output in self.model.inference_stream(
-                text=input,
-                language=lang,
-                gpt_cond_latent=latent,
-                speaker_embedding=embed,
+                text=text,
+                language=input.language,
+                gpt_cond_latent=cond_latent,
+                speaker_embedding=speaker_embedding,
                 speed=self.settings.speed,
                 temperature=self.settings.temperature,
                 length_penalty=self.settings.length_penalty,
@@ -92,6 +113,9 @@ class Model:
                 enable_text_splitting=False,
             ):
                 yield self.encode(output)
+
+        if self.offload:
+            self.model.cpu()
 
     def encode(self, input: torch.Tensor):
         output = BytesIO()
