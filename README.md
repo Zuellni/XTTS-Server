@@ -18,6 +18,7 @@ Optional speedup, unlikely to compile on Windows:
 pip install deepspeed
 ```
 
+## Usage
 Clone the repository, download the model, get some speakers and start the server:
 ```
 git clone https://github.com/zuellni/xtts-server -b main --depth 1 xtts
