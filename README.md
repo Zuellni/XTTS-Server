@@ -22,7 +22,7 @@ pip install deepspeed
 Clone the repository, download the model, get some speakers and start the server:
 ```
 git lfs install
-git clone https://github.com/zuellni/xtts-server -b main --depth 1 xtts
+git clone https://github.com/zuellni/xtts-server xtts
 git clone https://huggingface.co/coqui/xtts-v2 -b main --depth 1 xtts/model
 python xtts/server.py -m xtts/model -s xtts/speakers
 ```
