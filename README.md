@@ -4,25 +4,20 @@ An alternative to [xtts-api-server](https://github.com/daswer123/xtts-api-server
 ## Installation
 Create a new environment with conda/mamba:
 ```
-conda create -n xtts git python fastapi pytorch pytorch-cuda torchaudio -c conda-forge -c nvidia -c pytorch
+conda create -n xtts git python pytorch pytorch-cuda torchaudio -c conda-forge -c nvidia -c pytorch
 conda activate xtts
 ```
 
-Install TTS, [Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) and [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) are required to compile on Windows:
+Clone the repository and install requirements, [Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) and [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) are required on Windows:
 ```
-pip install coqui-tts
-```
-
-Optional speedup, unlikely to compile on Windows:
-```
-pip install deepspeed
+git clone https://github.com/zuellni/xtts-server xtts
+pip install -r xtts/requirements.txt
 ```
 
 ## Usage
-Clone the repository, download the model, get some speakers and start the server:
+Download the model, get some speakers and start the server:
 ```
 git lfs install
-git clone https://github.com/zuellni/xtts-server xtts
 git clone https://huggingface.co/coqui/xtts-v2 -b main --depth 1 xtts/model
 python xtts/server.py -m xtts/model -s xtts/speakers
 ```

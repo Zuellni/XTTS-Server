@@ -28,7 +28,7 @@ class Input(BaseModel):
             raise ValueError("invalid speaker")
 
         return value
-    
+
     @field_validator("language", mode="after")
     def validate_language(cls, value):
         return value.split("-")[0]
