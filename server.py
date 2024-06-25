@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--speakers", type=DirectoryPath, required=True)
     parser.add_argument("-d", "--device", type=str, default="cuda")
     parser.add_argument("-o", "--offload", action="store_true")
-    parser.add_argument("--deepspeed", action="store_true")
+    parser.add_argument("-p", "--deepspeed", action="store_true")
     args = parser.parse_args()
 
     with Progress(transient=True) as progress:
@@ -83,9 +83,9 @@ if __name__ == "__main__":
             model.add(speaker)
             progress.advance(caching)
 
-        Speakers = StrEnum("Speakers", ((s, s) for s in model.speakers))
-        Speaker._member_map_ = Speakers._member_map_
-        Speaker._member_names_ = Speakers._member_names_
-        Speaker._value2member_map_ = Speakers._value2member_map_
+    Speakers = StrEnum("Speakers", ((s, s) for s in model.speakers))
+    Speaker._member_map_ = Speakers._member_map_
+    Speaker._member_names_ = Speakers._member_names_
+    Speaker._value2member_map_ = Speakers._value2member_map_
 
     uvicorn.run(app, host=args.host, port=args.port)
