@@ -15,11 +15,11 @@ class Model:
     def __init__(
         self, model: DirectoryPath, device: str, offload: bool, deepspeed: bool
     ):
-        config = XttsConfig()
-        config.load_json(model / "config.json")
+        self.config = XttsConfig()
+        self.config.load_json(model / "config.json")
 
-        self.model = Xtts.init_from_config(config)
-        self.model.load_checkpoint(config, model, use_deepspeed=deepspeed)
+        self.model = Xtts.init_from_config(self.config)
+        self.model.load_checkpoint(self.config, model, use_deepspeed=deepspeed)
 
         self.settings = Settings()
         self.device = device
@@ -87,8 +87,7 @@ class Model:
             output = torch.tensor(output)
             yield self.encode(output)
 
-        if self.offload:
-            self.model.cpu()
+        self.offload and self.model.cpu()
 
     async def stream(self, input: Input):
         inputs, cond_latent, speaker_embedding = self.prepare(input)
@@ -111,8 +110,7 @@ class Model:
             ):
                 yield self.encode(output)
 
-        if self.offload:
-            self.model.cpu()
+        self.offload and self.model.cpu()
 
     def encode(self, input: torch.Tensor):
         output = BytesIO()
