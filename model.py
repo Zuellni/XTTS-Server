@@ -32,8 +32,13 @@ class Model:
         self.model.cpu()
 
         if not file.exists():
+            _, sr = torchaudio.load(path)
+
             cond_latent, speaker_embedding = self.model.get_conditioning_latents(
-                audio_path=path, librosa_trim_db=60, sound_norm_refs=True
+                audio_path=path,
+                librosa_trim_db=60,
+                sound_norm_refs=True,
+                load_sr=sr,
             )
 
             state_dict = {
