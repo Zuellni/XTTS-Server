@@ -65,9 +65,10 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8020)
     parser.add_argument("-m", "--model", type=DirectoryPath, required=True)
     parser.add_argument("-s", "--speakers", type=DirectoryPath, required=True)
-    parser.add_argument("-d", "--device", type=str, default="cuda")
+    parser.add_argument("-D", "--device", type=str, default="cuda")
+    parser.add_argument("-d", "--deepspeed", action="store_true")
     parser.add_argument("-o", "--offload", action="store_true")
-    parser.add_argument("-p", "--deepspeed", action="store_true")
+    parser.add_argument("-r", "--recache", action="store_true")
     args = parser.parse_args()
 
     with Progress(transient=True) as progress:
@@ -80,7 +81,7 @@ if __name__ == "__main__":
         caching = progress.add_task("Caching speakers", total=len(speakers))
 
         for speaker in speakers:
-            model.add(speaker)
+            model.add(speaker, args.recache)
             progress.advance(caching)
 
     Speakers = StrEnum("Speakers", ((s, s) for s in model.speakers))

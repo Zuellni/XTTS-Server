@@ -13,7 +13,11 @@ from schema import Input, Settings
 
 class Model:
     def __init__(
-        self, model: DirectoryPath, device: str, offload: bool, deepspeed: bool
+        self,
+        model: DirectoryPath,
+        device: str = "cuda",
+        offload: bool = False,
+        deepspeed: bool = False,
     ):
         self.config = XttsConfig()
         self.config.load_json(model / "config.json")
@@ -26,19 +30,19 @@ class Model:
         self.offload = offload
         self.speakers = {}
 
-    def add(self, path: FilePath):
-        name = path.stem.lower()
-        file = path.parent / f"{name}.st"
+    def add(self, audio_path: FilePath, recache: bool = False):
+        name = audio_path.stem.lower()
+        file = audio_path.parent / f"{name}.st"
         self.model.cpu()
 
-        if not file.exists():
-            _, sr = torchaudio.load(path)
+        if not file.exists() or recache:
+            _, load_sr = torchaudio.load(audio_path)
 
             cond_latent, speaker_embedding = self.model.get_conditioning_latents(
-                audio_path=path,
+                audio_path=audio_path,
                 librosa_trim_db=60,
                 sound_norm_refs=True,
-                load_sr=sr,
+                load_sr=load_sr,
             )
 
             state_dict = {
@@ -117,8 +121,8 @@ class Model:
 
         self.offload and self.model.cpu()
 
-    def encode(self, input: torch.Tensor):
+    def encode(self, input: torch.Tensor, sample_rate: int = 24000):
         output = BytesIO()
         input = input.unsqueeze(0).cpu()
-        torchaudio.save(output, input, 24000, format="ogg")
+        torchaudio.save(output, input, sample_rate, format="ogg")
         return output.getvalue()
