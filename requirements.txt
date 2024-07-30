@@ -1,3 +1,4 @@
 coqui-tts
 deepspeed
-fastapi
+fastapi-slim
+uvicorn

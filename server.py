@@ -1,6 +1,10 @@
 from argparse import ArgumentParser
 from enum import StrEnum
 from pathlib import Path
+from warnings import filterwarnings
+
+for category in (DeprecationWarning, FutureWarning, SyntaxWarning, UserWarning):
+    filterwarnings("ignore", category=category)
 
 import uvicorn
 from fastapi import Depends, FastAPI, Request
