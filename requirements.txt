@@ -1,4 +1,4 @@
 coqui-tts
-deepspeed
+deepspeed; platform_system == "Linux"
 fastapi-slim
 uvicorn
