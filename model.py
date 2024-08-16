@@ -98,7 +98,7 @@ class Model:
             yield self.encode(output)
 
         if self.offload:
-            self.model.cpu().pin_memory()
+            self.model.cpu()
 
     async def stream(self, input: Input):
         inputs, cond_latent, speaker_embedding = self.prepare(input)
@@ -122,7 +122,7 @@ class Model:
                 yield self.encode(output)
 
         if self.offload:
-            self.model.cpu().pin_memory()
+            self.model.cpu()
 
     def encode(self, input: torch.Tensor, sample_rate: int = 24000):
         input = input.unsqueeze(0).cpu()
