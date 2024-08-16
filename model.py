@@ -32,10 +32,11 @@ class Model:
 
     def add(self, audio_path: FilePath, recache: bool = False):
         name = audio_path.stem.lower()
-        file = audio_path.parent / f"{name}.st"
+        file = audio_path.parent / ".cache" / f"{name}.safetensors"
+        file.parent.mkdir(parents=True, exist_ok=True)
         self.model.cpu()
 
-        if not file.exists() or recache:
+        if recache or not file.exists():
             _, load_sr = torchaudio.load(audio_path)
 
             cond_latent, speaker_embedding = self.model.get_conditioning_latents(
@@ -96,7 +97,8 @@ class Model:
             output = torch.tensor(output)
             yield self.encode(output)
 
-        self.offload and self.model.cpu()
+        if self.offload:
+            self.model.cpu().pin_memory()
 
     async def stream(self, input: Input):
         inputs, cond_latent, speaker_embedding = self.prepare(input)
@@ -119,10 +121,11 @@ class Model:
             ):
                 yield self.encode(output)
 
-        self.offload and self.model.cpu()
+        if self.offload:
+            self.model.cpu().pin_memory()
 
     def encode(self, input: torch.Tensor, sample_rate: int = 24000):
-        output = BytesIO()
         input = input.unsqueeze(0).cpu()
+        output = BytesIO()
         torchaudio.save(output, input, sample_rate, format="ogg")
         return output.getvalue()

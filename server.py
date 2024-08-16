@@ -34,8 +34,8 @@ def set(settings: Settings):
 @app.get("/speakers")
 def get():
     return [
-        {"name": s.capitalize(), "voice_id": s, "preview_url": ""}
-        for s in model.speakers
+        {"name": speaker.capitalize(), "voice_id": speaker, "preview_url": ""}
+        for speaker in model.speakers
     ]
 
 
