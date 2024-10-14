@@ -4,7 +4,6 @@ warnings.simplefilter("ignore")
 
 from argparse import ArgumentParser
 from enum import StrEnum
-from pathlib import Path
 
 import uvicorn
 from fastapi import Depends, FastAPI, Request
